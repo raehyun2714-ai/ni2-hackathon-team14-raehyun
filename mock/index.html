@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>비나세이프 · 채팅</title>
+<style>
+  :root {
+    --navy: #10294a; --navy2: #1b3b66; --teal: #0e9aa7; --teal-dark: #0a7a85;
+    --bg: #eaf0f6; --card: #ffffff; --text: #1d2733; --sub: #66758a; --line: #d6dfea;
+    --warn-bg: #fff6dd; --warn-line: #eeb12c; --warn-text: #7a5200;
+    --danger-bg: #fde8e6; --danger-line: #d93025; --danger-text: #96150d;
+    --ok-bg: #e4f6ea; --ok-line: #2f9e5b; --ok-text: #17673a;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+    line-height: 1.55; display: flex; justify-content: center;
+  }
+  .app {
+    width: 100%; max-width: 760px; height: 100vh; height: 100dvh;
+    display: flex; flex-direction: column; background: var(--bg);
+  }
+  /* 헤더 */
+  header { background: linear-gradient(135deg, var(--navy), var(--navy2)); color: #fff; padding: 12px 16px 10px; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .logo { width: 34px; height: 34px; border-radius: 10px; background: var(--teal); display: grid; place-items: center; font-weight: 800; font-size: 1.05rem; }
+  .brand h1 { font-size: 1.15rem; margin: 0; line-height: 1.2; }
+  .brand p { margin: 0; font-size: .78rem; opacity: .8; }
+  .sample { margin-top: 8px; font-size: .76rem; background: rgba(255,255,255,.12); border-radius: 8px; padding: 6px 10px; }
+  /* 탭 + 공정 */
+  .bar { background: #fff; border-bottom: 1px solid var(--line); padding: 8px 12px 10px; }
+  .seg { display: flex; background: #e6edf5; border-radius: 10px; padding: 3px; gap: 3px; }
+  .seg button { flex: 1; border: 0; background: transparent; font: inherit; font-weight: 700; color: var(--sub); padding: 9px 6px; border-radius: 8px; cursor: pointer; min-height: 40px; }
+  .seg button[aria-selected="true"] { background: #fff; color: var(--navy); box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+  .procs { display: flex; gap: 6px; overflow-x: auto; padding-top: 9px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .procs::-webkit-scrollbar { display: none; }
+  .procs button { flex: 0 0 auto; border: 1px solid var(--line); background: #fff; color: var(--text); font: inherit; font-size: .86rem; padding: 7px 13px; border-radius: 999px; cursor: pointer; min-height: 36px; white-space: nowrap; }
+  .procs button[aria-pressed="true"] { background: var(--teal); border-color: var(--teal); color: #fff; font-weight: 700; }
+  /* 본문 */
+  main { flex: 1; overflow-y: auto; padding: 14px 12px; -webkit-overflow-scrolling: touch; }
+  .msg { display: flex; margin-bottom: 12px; }
+  .msg.user { justify-content: flex-end; }
+  .bubble { max-width: 88%; padding: 10px 13px; border-radius: 16px; font-size: .98rem; word-break: keep-all; overflow-wrap: anywhere; }
+  .msg.user .bubble { background: var(--teal); color: #fff; border-bottom-right-radius: 4px; }
+  .msg.bot .bubble { background: var(--card); border: 1px solid var(--line); border-bottom-left-radius: 4px; width: 88%; }
+  .bubble.plain { width: auto; }
+  .ptag { font-size: .72rem; opacity: .8; margin-bottom: 2px; }
+  .banner { border: 2px solid; border-radius: 10px; padding: 9px 11px; margin-bottom: 9px; font-weight: 700; font-size: .93rem; }
+  .banner.danger { background: var(--danger-bg); border-color: var(--danger-line); color: var(--danger-text); }
+  .banner.warn { background: var(--warn-bg); border-color: var(--warn-line); color: var(--warn-text); }
+  .banner.info { background: #eef3f9; border-color: var(--line); color: var(--sub); font-weight: 400; }
+  .ans { margin: 0; padding: 0; list-style: none; }
+  .ans li { position: relative; padding: 3px 0 3px 18px; }
+  .ans li::before { content: ""; position: absolute; left: 3px; top: .85em; width: 7px; height: 7px; border-radius: 50%; background: var(--teal); }
+  .note { font-size: .83rem; color: var(--sub); margin-top: 6px; }
+  details.src { margin-top: 9px; }
+  details.src summary { cursor: pointer; font-weight: 700; font-size: .86rem; color: var(--navy2); padding: 6px 0; min-height: 36px; }
+  .card { border: 1px solid var(--line); border-left: 4px solid var(--teal); border-radius: 8px; padding: 8px 10px; margin: 6px 0; background: #f8fbfd; }
+  .card.ref { border-left-color: #b8c4d3; background: #fafbfc; }
+  .card .n { font-weight: 700; font-size: .86rem; }
+  .card .c { color: var(--sub); font-size: .8rem; }
+  .card blockquote { margin: 5px 0 0; font-size: .88rem; }
+  .rate { display: flex; align-items: center; gap: 7px; margin-top: 8px; flex-wrap: wrap; }
+  .rate span { font-size: .82rem; color: var(--sub); }
+  .rate button { font-size: 1.05rem; border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 4px 12px; cursor: pointer; min-height: 40px; }
+  .rate button[aria-pressed="true"] { background: #dff0fb; border-color: var(--teal); }
+  .rate .thx { color: var(--ok-text); }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; margin: 8px 0 0; }
+  .chip { border: 1px solid var(--teal); color: var(--teal-dark); background: #fff; font: inherit; font-size: .86rem; padding: 7px 12px; border-radius: 999px; cursor: pointer; min-height: 38px; }
+  .chip:hover { background: #e6f6f8; }
+  .typing .bubble { display: flex; gap: 5px; padding: 14px 16px; width: auto; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #a9b6c6; animation: bl 1s infinite ease-in-out; }
+  .dot:nth-child(2) { animation-delay: .15s; } .dot:nth-child(3) { animation-delay: .3s; }
+  @keyframes bl { 0%, 80%, 100% { opacity: .3; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+  /* 입력창 */
+  .composer { background: #fff; border-top: 1px solid var(--line); padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); }
+  .composer .row { display: flex; gap: 8px; align-items: flex-end; }
+  .composer textarea { flex: 1; font: inherit; font-size: 16px; border: 1px solid var(--line); border-radius: 14px; padding: 10px 13px; resize: none; max-height: 120px; min-height: 44px; background: #f7fafc; color: var(--text); }
+  .send { border: 0; background: var(--teal); color: #fff; font: inherit; font-weight: 700; border-radius: 14px; padding: 0 18px; min-height: 44px; cursor: pointer; }
+  .send:disabled { background: #b6c3d1; cursor: not-allowed; }
+  .tools { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: .74rem; color: var(--sub); }
+  .tools button { border: 0; background: transparent; color: var(--sub); font: inherit; font-size: .76rem; text-decoration: underline; cursor: pointer; padding: 4px; }
+  textarea:focus, button:focus-visible, summary:focus-visible { outline: 3px solid #8fd0d6; outline-offset: 1px; }
+  /* 체크리스트 */
+  .ck-head { font-weight: 800; font-size: 1.05rem; margin: 2px 2px 4px; }
+  .ck-sub { font-size: .84rem; color: var(--sub); margin: 0 2px 10px; }
+  .group-t { font-size: .8rem; font-weight: 800; color: var(--teal-dark); margin: 12px 2px 6px; letter-spacing: .02em; }
+  .ck { display: flex; gap: 12px; align-items: flex-start; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 8px; cursor: pointer; }
+  .ck input { width: 22px; height: 22px; margin-top: 2px; flex-shrink: 0; accent-color: var(--teal); }
+  .ck.done { background: var(--ok-bg); border-color: var(--ok-line); }
+  .ck .t { font-weight: 700; }
+  .ck .s { font-size: .8rem; color: var(--sub); margin-top: 3px; }
+  .meter { height: 8px; background: #d7e1ec; border-radius: 99px; overflow: hidden; margin: 2px 2px 4px; }
+  .meter i { display: block; height: 100%; width: 0; background: var(--teal); transition: width .25s; }
+  .ready { margin-top: 12px; text-align: center; font-weight: 800; font-size: 1.1rem; padding: 15px; border-radius: 12px; background: var(--ok-bg); border: 2px solid var(--ok-line); color: var(--ok-text); }
+  .hidden { display: none !important; }
+  @media (max-width: 480px) { .bubble { max-width: 94%; } .msg.bot .bubble { width: 94%; } }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&display=swap">
+<style id="vina-green-theme">
+/* 비나텍 느낌 초록 캐주얼 테마 + VINA Safe 워드마크 */
+
+  :root{--navy:#1f5e2e;--navy2:#2e7d3a;--teal:#43a047;--teal-dark:#2e7d32;--bg:#f4fbe9;--card:#fff;--text:#2b4030;--sub:#7b8f78;--line:#d9ecc0;
+   --warn-bg:#fff6c9;--warn-line:#f2c200;--warn-text:#7a5a00;--danger-bg:#ffe3df;--danger-line:#e5533d;--danger-text:#a02616;--ok-bg:#e0f6d2;--ok-line:#5fb44a;--ok-text:#256b1c;}
+  body,button,textarea{font-family:"Jua","Malgun Gothic","Noto Sans KR",sans-serif !important;}
+  body{background:#dff1c4 radial-gradient(circle at 15% 12%,#eefad7 0 90px,transparent 91px),radial-gradient(circle at 88% 85%,#cfeaa8 0 120px,transparent 121px);}
+  .app{background:var(--bg);box-shadow:0 0 0 4px #fff,0 10px 40px rgba(46,125,50,.2);}
+  header{background:linear-gradient(135deg,#2e9e4f,#8bc34a);color:#fff;border-radius:0 0 28px 28px;padding:16px 18px 14px;position:relative;overflow:hidden;}
+  header::after{content:"🌿";position:absolute;right:16px;top:8px;font-size:2.4rem;opacity:.35;transform:rotate(15deg);}
+  .logo{background:#fff;color:#2e9e4f;border-radius:50% 50% 50% 8px;width:42px;height:42px;font-size:1.3rem;box-shadow:0 3px 0 rgba(0,0,0,.15);transform:rotate(-8deg);}
+  .brand h1{font-size:1.45rem;font-weight:400;text-shadow:0 2px 0 rgba(0,0,0,.12);} .brand p{opacity:.95;}
+  .sample{background:rgba(255,255,255,.8);border-radius:999px;padding:6px 14px;color:#2e6b34;}
+  .bar{background:transparent;border:0;padding:12px 14px 6px;}
+  .seg{background:#e3f3cc;border-radius:999px;padding:4px;}
+  .seg button{border-radius:999px;font-weight:400;font-size:1rem;color:#7da16a;}
+  .seg button[aria-selected="true"]{background:#fff;color:#2e9e4f;box-shadow:0 3px 0 #c5e0a3;}
+  .procs button{background:#fff;border:2px solid #cfe7ae;border-radius:999px;font-weight:400;color:#3d5f3f;}
+  .procs button:hover{transform:translateY(-1px);}
+  .procs button[aria-pressed="true"]{background:#43a047;border-color:#43a047;color:#fff;box-shadow:0 3px 0 #2e7d32;font-weight:400;}
+  main{padding:14px;}
+  .bubble{border-radius:22px;font-size:1rem;line-height:1.6;}
+  .msg.user .bubble{background:linear-gradient(135deg,#66bb6a,#43a047);border-bottom-right-radius:6px;box-shadow:0 3px 0 #2e7d32;}
+  .msg.bot .bubble{border:2px solid #cfe7ae;border-bottom-left-radius:6px;box-shadow:0 3px 0 #cfe7ae;}
+  .banner{border-radius:16px;border-width:2px;font-weight:400;}
+  .banner.info{background:#f1f9e3;}
+  .ans li::before{background:#8bc34a;border-radius:50% 0 50% 50%;box-shadow:0 0 0 3px #e3f3cc;transform:rotate(-45deg);}
+  .card{border:2px dashed #cfe7ae;border-left:2px dashed #cfe7ae;border-radius:14px;background:#fafdf3;}
+  .card.ref{background:#f6f8f1;}
+  details.src summary{color:#2e7d32;font-weight:400;}
+  .chip{border:2px solid #8bc34a;color:#2e7d32;border-radius:999px;font-weight:400;background:#fbfef5;transition:.15s;}
+  .chip:hover{background:#e3f3cc;transform:translateY(-2px) rotate(-1deg);}
+  .rate button{border:2px solid #cfe7ae;border-radius:999px;}
+  .rate button[aria-pressed="true"]{background:#e3f3cc;border-color:#8bc34a;}
+  .dot{background:#8bc34a;}
+  .composer{background:transparent;border:0;padding:6px 12px calc(10px + env(safe-area-inset-bottom));}
+  .composer textarea{background:#fff;border:2px solid #cfe7ae;border-radius:22px;padding:12px 16px;}
+  .composer textarea:focus{outline:0;border-color:#43a047;box-shadow:0 0 0 4px #d6efc0;}
+  .send{background:#43a047;border-radius:22px;box-shadow:0 3px 0 #2e7d32;font-weight:400;padding:0 22px;}
+  .send:active{transform:translateY(2px);box-shadow:0 1px 0 #2e7d32;}
+  .send:disabled{background:#cfdcc3;box-shadow:0 3px 0 #b6c6a8;}
+  textarea:focus,button:focus-visible,summary:focus-visible{outline-color:#a5d66f;}
+  .ck-head{font-weight:400;font-size:1.3rem;color:#2e7d32;}
+  .group-t{color:#2e7d32;font-weight:400;font-size:.95rem;}
+  .ck{border:2px solid #cfe7ae;border-radius:18px;box-shadow:0 3px 0 #cfe7ae;font-weight:400;}
+  .ck .t{font-weight:400;} .ck.done{box-shadow:0 3px 0 #a5d68f;}
+  .ck input{accent-color:#43a047;}
+  .meter{height:14px;background:#e3f3cc;border:2px solid #cfe7ae;}
+  .meter i{background:repeating-linear-gradient(45deg,#43a047 0 10px,#7cc65a 10px 20px);}
+  .ready{border-radius:20px;font-weight:400;box-shadow:0 4px 0 #a5d68f;}
+  
+.logo{display:none !important}
+  .brand h1{display:inline-flex;align-items:baseline;background:#fff;border-radius:999px;padding:6px 20px 8px;box-shadow:0 3px 0 rgba(0,0,0,.15);transform:rotate(-2deg);font-size:1.7rem !important;letter-spacing:-.03em;line-height:1.1 !important;text-shadow:none !important}
+  .vs-a{font-weight:900;font-style:italic;background:linear-gradient(135deg,#c2d500 0%,#64a825 60%,#4c9c2e 100%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-stroke:1.5px #4c9c2e;padding-right:2px}
+  .vs-b{font-weight:400;color:#2b4030;-webkit-text-stroke:.6px #2b4030}
+  .brand p{margin-top:6px !important}
+  .brand h1{font-family:"Arial Black","Segoe UI","Helvetica Neue",Arial,sans-serif !important;font-size:1.8rem !important;letter-spacing:-.02em;padding:6px 22px 8px !important}
+  .vs-a{font-weight:900 !important;font-style:italic;letter-spacing:-.03em;-webkit-text-stroke:1px #4c9c2e !important;padding-right:4px !important}
+  .vs-b{font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;font-weight:600 !important;-webkit-text-stroke:0 !important;color:#2b4030;letter-spacing:-.01em}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <div><h1 id="appName"><span class="vs-a">VINA</span><span class="vs-b">Safe</span></h1><p>신입 작업자를 위한 공정 Q&amp;A · 안전 체크리스트</p></div>
+    </div>
+    <div class="sample">시제품 · 공정명과 문서는 모두 <b>샘플 데이터</b>이며 실제 규정이 아닙니다.</div>
+  </header>
+
+  <div class="bar">
+    <div class="seg" role="tablist">
+      <button role="tab" id="tab-chat" aria-selected="true">💬 대화</button>
+      <button role="tab" id="tab-check" aria-selected="false">✅ 안전 체크리스트</button>
+    </div>
+    <div class="procs" id="procs" role="group" aria-label="공정 선택"></div>
+  </div>
+
+  <main id="main"></main>
+
+  <div class="composer" id="composer">
+    <div class="row">
+      <textarea id="input" rows="1" placeholder="궁금한 것을 입력하세요" aria-label="질문 입력"></textarea>
+      <button class="send" id="send" disabled>전송</button>
+    </div>
+    <div class="tools"><span id="procLabel">공정: 전체 · Enter 전송 / Shift+Enter 줄바꿈</span><button id="clear" type="button">대화 지우기</button></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var PROCESSES = ["전체", "전극 코팅", "셀 조립", "충방전·내전압 시험", "품질검사(QC)"];
+  var FAQS = ["극성을 반대로 연결했으면?", "충방전 시간은 왜 지켜야 해?", "필수 보호구는?"];
+  var NOTICE = "즉시 작업을 멈추고 담당자에게 알리세요";
+
+  /* ===== 질문 이해용 개념 사전 (동의어·유사 표현) — 공백/기호는 제거한 형태로 비교 ===== */
+  var CONCEPTS = {
+    polarity: ["극성", "플러스", "마이너스", "양극단자", "음극단자"],
+    voltage: ["정격", "전압", "볼트"],
+    ppe: ["보호구", "보호장비", "안전장비", "보호복", "장갑", "보안경", "고글", "두건", "밴드", "마스크", "착용", "입어", "입고", "껴야", "써야", "복장"],
+    chargetime: ["충방전시간", "충전시간", "방전시간", "시험시간", "시간은", "시간을", "시간준수", "시간지"],
+    smell: ["냄새", "악취", "탄내", "타는", "연기", "매캐", "가스"],
+    equip: ["케이블", "피복", "지그", "단자", "헐거", "설비외관", "설비점검"],
+    ground: ["접지", "어스"],
+    zone: ["출입", "통제", "시험구역", "비상정지", "비상버튼"],
+    cellcond: ["부풀", "팽창", "찌그러", "누액", "셀외관", "변형"],
+    setting: ["설정값", "지시서", "시험조건", "전류", "온도"],
+    fire: ["소화기", "비상연락", "연락처"],
+    solvent: ["용제", "코팅", "슬러리", "도포"],
+    vent: ["환기", "배기", "후드"],
+    container: ["용기", "뚜껑", "라벨", "보관"],
+    guard: ["회전부", "덮개", "방호", "건조로"],
+    spill: ["누수", "누출", "흡착포", "바닥", "쏟"],
+    statics: ["정전기", "조립실", "입실", "복장"],
+    humidity: ["습도", "이슬점", "드라이룸"],
+    foreign: ["이물", "주머니", "장신구", "반지", "시계", "금속"],
+    short: ["단락", "쇼트", "절연공구", "공구"],
+    calib: ["교정", "계측기", "측정기", "캘리브"],
+    lot: ["로트", "lot", "이력"],
+    reject: ["불합격", "부적합", "분리보관", "불량품"],
+    abnormal: ["이상발견", "이상을발견", "이상이있", "이상이생", "불량발견"],
+    emfac: ["비상샤워", "세안기", "비상구", "대피"],
+    ppecheck: ["손상", "기한", "유효", "파손", "보호구점검"],
+    tbm: ["tbm", "작업전대화", "조회", "미팅"]
+  };
+  var EMERGENCY = ["냄새", "악취", "탄내", "타는", "연기", "발열", "뜨거", "과열", "스파크", "불꽃", "불똥", "누액", "새어", "샌다", "전해액", "화재", "불이", "불났", "폭발", "부풀", "팽창", "부상", "다쳤", "다쳐", "쓰러"];
+  var MISTAKE = ["반대로", "거꾸로", "잘못", "틀리게", "틀렸", "실수", "안하고", "안하면", "안지키", "어기", "어겼", "빼먹", "깜빡", "역으로", "위반", "못했"];
+  var REASON = ["왜", "이유", "어째서", "때문"];
+  var DOMAIN = ["공정", "시험", "안전", "작업", "셀", "전극", "충방전", "내전압", "검사", "qc", "배터리", "설비", "담당자", "규정", "수칙", "조항", "체크리스트"];
+  var GREET = ["안녕", "hello", "하이", "반가", "고마", "감사"];
+
+  /* ===== 샘플 문서 (실제 규정 아님). needs: 모든 묶음에서 최소 1개 개념이 질문에 있어야 함 ===== */
+  var CH = "충방전·내전압 시험 안전수칙(샘플)", CO = "전극 코팅 작업 안전수칙(샘플)",
+      AS = "셀 조립 작업 안전수칙(샘플)", QC = "품질검사(QC) 작업 지침(샘플)", CM = "전 공정 공통 안전수칙(샘플)";
+  var DOCS = [
+    { id: "ch2", process: "충방전·내전압 시험", doc: CH, clause: "제2조", needs: [["equip"]],
+      excerpt: "시험 설비와 지그의 외관을 확인하여 케이블 피복 손상과 단자 헐거움이 있으면 사용하지 않는다.",
+      summary: "설비와 지그 외관을 확인하고, 케이블 피복이 손상됐거나 단자가 헐거우면 사용하지 마세요." },
+    { id: "ch3", process: "충방전·내전압 시험", doc: CH, clause: "제3조", needs: [["polarity", "voltage"]],
+      excerpt: "시험 전 극성 표시를 확인하고 정격 전압을 확인한 뒤 시험을 시작한다.",
+      summary: "시험 시작 전에 극성 표시와 정격 전압을 먼저 확인하세요." },
+    { id: "ch4", process: "충방전·내전압 시험", doc: CH, clause: "제4조", needs: [["ppe"]],
+      excerpt: "작업자는 절연장갑, 보안경, 두건, 정전기 방지 밴드를 착용한다.",
+      summary: "절연장갑, 보안경, 두건, 정전기 방지 밴드를 착용하세요." },
+    { id: "ch5", process: "충방전·내전압 시험", doc: CH, clause: "제5조", needs: [["chargetime"]],
+      excerpt: "충방전 시간은 지정된 시간을 준수한다.",
+      summary: "충방전 시간은 지정된 시간을 지켜야 합니다." },
+    { id: "ch6", process: "충방전·내전압 시험", doc: CH, clause: "제6조", needs: [["ground"]],
+      excerpt: "시험 전 설비의 접지 연결 상태를 확인한다.",
+      summary: "시험 전에 설비의 접지 연결 상태를 확인하세요." },
+    { id: "ch7", process: "충방전·내전압 시험", doc: CH, clause: "제7조", needs: [["zone"]],
+      excerpt: "시험 구역은 출입 통제 표시를 하고 비상정지 버튼 위치를 확인한다.",
+      summary: "시험 구역에 출입 통제 표시를 하고 비상정지 버튼 위치를 확인하세요." },
+    { id: "ch8", process: "충방전·내전압 시험", doc: CH, clause: "제8조", needs: [["smell"]], incident: true,
+      excerpt: "이상한 냄새, 연기가 발생하면 즉시 시험을 중단하고 담당자에게 보고한다.",
+      summary: "즉시 시험을 중단하고 담당자에게 보고하세요." },
+    { id: "ch9", process: "충방전·내전압 시험", doc: CH, clause: "제9조", needs: [["cellcond"]], incident: true,
+      excerpt: "부풀음, 누액, 찌그러짐이 있는 셀은 시험하지 않고 분리하여 담당자에게 알린다.",
+      summary: "부풀거나 새거나 찌그러진 셀은 시험하지 말고 분리해서 담당자에게 알리세요." },
+    { id: "ch10", process: "충방전·내전압 시험", doc: CH, clause: "제10조", needs: [["setting"]],
+      excerpt: "시험 조건(전압, 전류, 온도) 설정값이 작업 지시서와 일치하는지 확인한다.",
+      summary: "시험 조건(전압, 전류, 온도) 설정값이 작업 지시서와 같은지 확인하세요." },
+    { id: "ch11", process: "충방전·내전압 시험", doc: CH, clause: "제11조", needs: [["fire"]],
+      excerpt: "소화기와 비상 연락처의 위치를 확인한다.",
+      summary: "소화기와 비상 연락처의 위치를 확인하세요." },
+
+    { id: "co2", process: "전극 코팅", doc: CO, clause: "제2조", needs: [["ppe", "solvent"]],
+      excerpt: "코팅 작업 전 용제 취급 보호구(보안경, 방독 마스크, 내화학 장갑)를 착용한다.",
+      summary: "코팅 작업 전에 보안경, 방독 마스크, 내화학 장갑을 착용하세요." },
+    { id: "co3", process: "전극 코팅", doc: CO, clause: "제3조", needs: [["vent"]],
+      excerpt: "작업 전 환기(배기) 장치가 정상 작동하는지 확인한다.",
+      summary: "작업 전에 환기(배기) 장치가 정상 작동하는지 확인하세요." },
+    { id: "co4", process: "전극 코팅", doc: CO, clause: "제4조", needs: [["container"]],
+      excerpt: "용제 용기는 라벨을 확인하고 사용 후 뚜껑을 닫아 보관한다.",
+      summary: "용제 용기의 라벨을 확인하고, 사용 후에는 뚜껑을 닫아 보관하세요." },
+    { id: "co5", process: "전극 코팅", doc: CO, clause: "제5조", needs: [["guard"]],
+      excerpt: "회전부와 건조로의 방호 덮개가 닫혀 있는지 확인한다.",
+      summary: "회전부와 건조로의 방호 덮개가 닫혀 있는지 확인하세요." },
+    { id: "co6", process: "전극 코팅", doc: CO, clause: "제6조", needs: [["spill"]], incident: true,
+      excerpt: "바닥에 누수나 용제 누출이 있으면 흡착포로 처리하고 담당자에게 알린다.",
+      summary: "바닥에 누수나 용제 누출이 있으면 흡착포로 처리하고 담당자에게 알리세요." },
+
+    { id: "as2", process: "셀 조립", doc: AS, clause: "제2조", needs: [["ppe", "statics"]],
+      excerpt: "조립실 입실 전 정전기 방지 복장과 정전기 방지 밴드를 착용한다.",
+      summary: "조립실에 들어가기 전에 정전기 방지 복장과 밴드를 착용하세요." },
+    { id: "as3", process: "셀 조립", doc: AS, clause: "제3조", needs: [["humidity"]],
+      excerpt: "조립실의 습도와 이슬점이 기준 범위인지 확인한다.",
+      summary: "조립실의 습도와 이슬점이 기준 범위 안인지 확인하세요." },
+    { id: "as4", process: "셀 조립", doc: AS, clause: "제4조", needs: [["foreign"]],
+      excerpt: "금속 이물 반입을 막기 위해 주머니를 비우고 장신구를 제거한다.",
+      summary: "금속 이물이 들어가지 않게 주머니를 비우고 장신구를 빼세요." },
+    { id: "as5", process: "셀 조립", doc: AS, clause: "제5조", needs: [["short"]],
+      excerpt: "공구와 단자 노출부가 닿아 단락되지 않도록 절연 공구를 사용한다.",
+      summary: "공구가 단자 노출부에 닿아 단락되지 않게 절연 공구를 사용하세요." },
+
+    { id: "qc2", process: "품질검사(QC)", doc: QC, clause: "제2조", needs: [["calib"]],
+      excerpt: "검사 시작 전 계측기 교정 상태 표시를 확인한다.",
+      summary: "검사를 시작하기 전에 계측기의 교정 상태 표시를 확인하세요." },
+    { id: "qc3", process: "품질검사(QC)", doc: QC, clause: "제3조", needs: [["lot"]],
+      excerpt: "검사 대상의 로트 번호와 이력 표시를 확인한다.",
+      summary: "검사 대상의 로트 번호와 이력 표시를 확인하세요." },
+    { id: "qc4", process: "품질검사(QC)", doc: QC, clause: "제4조", needs: [["reject"]],
+      excerpt: "불합격품은 지정된 분리 보관 구역에 표시하여 보관한다.",
+      summary: "불합격품은 지정된 분리 보관 구역에 표시해서 보관하세요." },
+    { id: "qc5", process: "품질검사(QC)", doc: QC, clause: "제5조", needs: [["abnormal"]], incident: true,
+      excerpt: "검사 중 이상을 발견하면 작업을 멈추고 담당자에게 보고한다.",
+      summary: "검사 중 이상을 발견하면 작업을 멈추고 담당자에게 보고하세요." },
+
+    { id: "cm2", process: "전 공정", doc: CM, clause: "제2조", needs: [["emfac"]],
+      excerpt: "비상샤워기, 세안기, 비상구의 위치를 확인한다.",
+      summary: "비상샤워기, 세안기, 비상구의 위치를 확인하세요." },
+    { id: "cm3", process: "전 공정", doc: CM, clause: "제3조", needs: [["ppe"], ["ppecheck"]],
+      excerpt: "개인 보호구의 손상과 사용 기한을 확인한 뒤 착용한다.",
+      summary: "개인 보호구에 손상이 없는지, 사용 기한이 지나지 않았는지 확인한 뒤 착용하세요." },
+    { id: "cm4", process: "전 공정", doc: CM, clause: "제4조", needs: [["tbm"]],
+      excerpt: "작업 시작 전 작업 전 대화(TBM)에 참석한다.",
+      summary: "작업 시작 전 작업 전 대화(TBM)에 참석하세요." }
+  ];
+  var BY_ID = {}; DOCS.forEach(function (d) { BY_ID[d.id] = d; });
+
+  /* ===== 체크리스트 (항목마다 문서 연결) ===== */
+  var CHECKLISTS = {
+    "충방전·내전압 시험": ["ch2", "ch6", "ch7", "ch9", "ch10", "ch3|극성 확인", "ch3|정격 전압 확인", "ch4|절연장갑·보안경·두건·정전기 방지 밴드 착용", "ch5|충방전 시간 준수"],
+    "전극 코팅": ["co2|용제 취급 보호구(보안경·방독 마스크·내화학 장갑) 착용", "co3", "co4", "co5", "co6"],
+    "셀 조립": ["as2|정전기 방지 복장·밴드 착용", "as3", "as4", "as5"],
+    "품질검사(QC)": ["qc2|계측기 교정 상태 확인", "qc3", "qc4"]
+  };
+  var COMMON = ["cm2", "cm3", "cm4"];
+  var CHECK_TEXT = { ch2: "설비·지그 외관 확인 (케이블 피복, 단자)", ch6: "접지 연결 확인", ch7: "시험 구역 출입 통제·비상정지 버튼 확인",
+    ch9: "셀 외관 확인 (부풀음·누액·찌그러짐)", ch10: "시험 조건 설정값 확인", co3: "환기(배기) 장치 작동 확인",
+    co4: "용제 용기 라벨 확인·뚜껑 닫기", co5: "회전부·건조로 방호 덮개 확인", co6: "바닥 누수·용제 누출 여부 확인",
+    as3: "조립실 습도·이슬점 확인", as4: "금속 이물 반입 방지 (주머니 비우기·장신구 제거)", as5: "절연 공구 사용 (단락 방지)",
+    qc3: "로트 번호·이력 표시 확인", qc4: "불합격품 분리 보관 구역 확인", cm2: "비상샤워기·세안기·비상구 위치 확인",
+    cm3: "개인 보호구 손상·사용 기한 확인", cm4: "작업 전 대화(TBM) 참석" };
+
+  /* ===== 요소 / 상태 ===== */
+  var $ = function (id) { return document.getElementById(id); };
+  var main = $("main"), input = $("input"), sendBtn = $("send");
+  var state = { tab: "chat", process: "전체", busy: false, checks: {} };
+
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+  function norm(s) { return s.toLowerCase().replace(/[\s?？!.,~·\-_/()\[\]:;'"“”]/g, ""); }
+  function has(q, list) { return list.some(function (w) { return q.indexOf(w) >= 0; }); }
+
+  /* ===== 매칭 엔진 (목) : 개념 사전 + 점수 방식. 나중에 실제 AI로 교체할 때 이 함수만 바꾸면 됨 ===== */
+  function matchedConcepts(q) {
+    var m = {}; Object.keys(CONCEPTS).forEach(function (k) { if (has(q, CONCEPTS[k])) m[k] = true; }); return m;
+  }
+  function scoreDoc(doc, m) {
+    var score = 0;
+    for (var i = 0; i < doc.needs.length; i++) {
+      var g = doc.needs[i].filter(function (c) { return m[c]; });
+      if (!g.length) return 0;
+      score += g.length;
+    }
+    return score;
+  }
+  function rank(docs, m) {
+    return docs.map(function (d) { return { d: d, s: scoreDoc(d, m) }; })
+      .filter(function (x) { return x.s > 0; })
+      .sort(function (a, b) { return b.s - a.s; })
+      .map(function (x) { return x.d; });
+  }
+  function toSrc(d) { return { doc_name: d.doc, clause: d.clause, excerpt: d.excerpt }; }
+
+  function askBot(process, question) {
+    var q = norm(question);
+    var emergency = has(q, EMERGENCY);
+    var m = matchedConcepts(q);
+    var anyConcept = Object.keys(m).length > 0;
+    var domain = anyConcept || has(q, DOMAIN) || emergency;
+
+    if (!domain) {
+      if (has(q, GREET)) return { status: "GREETING", emergency: false, answer: [], sources: [], related: [] };
+      return { status: "OUT_OF_SCOPE", emergency: false, answer: [], sources: [], related: [],
+        warning: "업무 관련 질문만 답할 수 있어요. 공정, 안전, 보호구, 시험 절차 등에 대해 물어보세요." };
+    }
+
+    var pool = DOCS.filter(function (d) { return process === "전체" || d.process === process || d.process === "전 공정"; });
+    var hits = rank(pool, m);
+    var mistake = has(q, MISTAKE), reason = has(q, REASON);
+
+    if (emergency) {
+      var inc = hits.filter(function (d) { return d.incident; });
+      if (inc.length) hits = inc;
+    }
+    // 실수·사고 대응 질문: 사고 대응 문서가 없으면 답을 만들지 않음 (관련 규정만 참고로 보여줌)
+    if (mistake && !hits.some(function (d) { return d.incident; })) {
+      return { status: "NEEDS_CONFIRMATION", emergency: emergency, answer: [], sources: [],
+        related: hits.slice(0, 2).map(toSrc),
+        warning: "근거 문서를 찾지 못했습니다. 담당자 확인 필요",
+        note: hits.length ? "관련 규정은 있지만, 잘못했을 때의 조치 방법은 문서에 없어요." : "" };
+    }
+    if (!hits.length) {
+      var others = rank(DOCS, m).filter(function (d) { return pool.indexOf(d) < 0; });
+      var note = others.length ? "다른 공정(" + others[0].process + ")에 관련 문서가 있어요. 공정을 바꿔서 다시 물어보세요." : "";
+      return { status: "NEEDS_CONFIRMATION", emergency: emergency, answer: [], sources: [], related: [],
+        warning: "근거 문서를 찾지 못했습니다. 담당자 확인 필요", note: note };
+    }
+    // 질문이 다른 공정 문서에 더 정확히 맞으면, 엉뚱한 공정의 답을 주지 않고 공정 변경을 안내
+    var bestAll = rank(DOCS, m)[0];
+    if (process !== "전체" && bestAll && pool.indexOf(bestAll) < 0 && scoreDoc(bestAll, m) > scoreDoc(hits[0], m)) {
+      return { status: "NEEDS_CONFIRMATION", emergency: emergency, answer: [], sources: [], related: [],
+        warning: "근거 문서를 찾지 못했습니다. 담당자 확인 필요",
+        note: "다른 공정(" + bestAll.process + ")에 더 맞는 문서가 있어요. 공정을 바꿔서 다시 물어보세요." };
+    }
+    var shown = hits.slice(0, 3);
+    var multi = new Set(shown.map(function (d) { return d.process; })).size > 1 || process === "전체";
+    var answer = shown.map(function (d) {
+      var tag = d.process === "전 공정" ? "[공통] " : (multi ? "[" + d.process + "] " : "");
+      return tag + d.summary;
+    });
+    var notes = [];
+    if (reason) notes.push("이유나 배경 설명은 문서에 없어요. 궁금하면 담당자에게 확인하세요.");
+    if (hits.length > 3) notes.push("관련 문서가 " + hits.length + "개 있어 3개만 보여드려요. 공정을 고르면 더 정확해져요.");
+    return { status: "OK", emergency: emergency, answer: answer, sources: shown.map(toSrc), related: [], note: notes.join(" ") };
+  }
+
+  /* ===== 대화 화면 ===== */
+  function scrollDown() { main.scrollTop = main.scrollHeight; }
+  function addUser(text) {
+    var row = el("div", "msg user"); var b = el("div", "bubble", text); row.appendChild(b); main.appendChild(row); scrollDown();
+  }
+  function faqChips() {
+    var w = el("div", "chips");
+    FAQS.forEach(function (f) { var b = el("button", "chip", f); b.type = "button"; b.onclick = function () { send(f); }; w.appendChild(b); });
+    return w;
+  }
+  function addGreeting() {
+    var row = el("div", "msg bot"); var b = el("div", "bubble");
+    b.appendChild(el("div", "", "안녕하세요, 비나세이프예요. 위에서 공정을 고르고 궁금한 것을 물어보세요. 샘플 문서에 근거가 있는 내용만 답하고, 없으면 담당자 확인이 필요하다고 알려드려요."));
+    b.appendChild(el("div", "note", "자주 묻는 질문"));
+    b.appendChild(faqChips());
+    row.appendChild(b); main.appendChild(row);
+  }
+  function srcCard(s, ref) {
+    var c = el("div", "card" + (ref ? " ref" : ""));
+    c.appendChild(el("div", "n", s.doc_name)); c.appendChild(el("div", "c", s.clause));
+    c.appendChild(el("blockquote", "", "“" + s.excerpt + "”")); return c;
+  }
+  function saveLog(entry) {
+    try { var k = "binasafe_feedback", l = JSON.parse(localStorage.getItem(k) || "[]"); l.push(entry); localStorage.setItem(k, JSON.stringify(l.slice(-200))); } catch (e) {}
+  }
+  function addBot(question, process, r) {
+    var row = el("div", "msg bot"); var b = el("div", "bubble");
+    if (r.status === "GREETING") {
+      b.textContent = "안녕하세요! 공정을 고르고 궁금한 안전 수칙을 물어보세요.";
+      b.className = "bubble plain";
+    } else {
+      if (r.emergency) b.appendChild(el("div", "banner danger", "⚠ " + NOTICE));
+      if (r.status === "NEEDS_CONFIRMATION") b.appendChild(el("div", "banner warn", "⚠ " + r.warning));
+      if (r.status === "OUT_OF_SCOPE") b.appendChild(el("div", "banner info", r.warning));
+      if (r.status === "OK") {
+        var ul = el("ul", "ans"); r.answer.forEach(function (a) { ul.appendChild(el("li", "", a)); }); b.appendChild(ul);
+      }
+      if (r.note) b.appendChild(el("div", "note", r.note));
+      if (r.sources && r.sources.length) {
+        var d = el("details", "src"); d.open = true;
+        d.appendChild(el("summary", "", "근거 문서 (" + r.sources.length + ")"));
+        r.sources.forEach(function (s) { d.appendChild(srcCard(s, false)); }); b.appendChild(d);
+      }
+      if (r.related && r.related.length) {
+        var d2 = el("details", "src");
+        d2.appendChild(el("summary", "", "참고할 수 있는 관련 문서 (직접적인 답은 아님)"));
+        r.related.forEach(function (s) { d2.appendChild(srcCard(s, true)); }); b.appendChild(d2);
+      }
+      if (r.status !== "OUT_OF_SCOPE") {
+        var rate = el("div", "rate"); rate.appendChild(el("span", "", "도움이 됐나요?"));
+        var up = el("button", "", "👍"), dn = el("button", "", "👎"), thx = el("span", "thx", "");
+        [up, dn].forEach(function (x) { x.setAttribute("aria-pressed", "false"); x.type = "button"; });
+        up.setAttribute("aria-label", "도움이 됐어요"); dn.setAttribute("aria-label", "도움이 안 됐어요");
+        function vote(v, a, o) { a.setAttribute("aria-pressed", "true"); o.setAttribute("aria-pressed", "false"); thx.textContent = "의견이 저장됐어요.";
+          saveLog({ time: new Date().toISOString(), process: process, question: question, status: r.status, rating: v }); }
+        up.onclick = function () { vote("up", up, dn); }; dn.onclick = function () { vote("down", dn, up); };
+        rate.appendChild(up); rate.appendChild(dn); rate.appendChild(thx); b.appendChild(rate);
+      }
+    }
+    row.appendChild(b); main.appendChild(row); scrollDown();
+  }
+  function send(text) {
+    var q = (text || "").trim();
+    if (!q || state.busy) return;
+    state.busy = true; sendBtn.disabled = true;
+    input.value = ""; autosize();
+    addUser(q);
+    var typing = el("div", "msg bot typing"); var tb = el("div", "bubble");
+    tb.setAttribute("aria-label", "답변 작성 중");
+    tb.appendChild(el("span", "dot")); tb.appendChild(el("span", "dot")); tb.appendChild(el("span", "dot"));
+    typing.appendChild(tb); main.appendChild(typing); scrollDown();
+    var proc = state.process;
+    setTimeout(function () {
+      var r = askBot(proc, q);
+      if (typing.parentNode) typing.parentNode.removeChild(typing);
+      addBot(q, proc, r);
+      state.busy = false; sendBtn.disabled = !input.value.trim();
+    }, 550);
+  }
+  function renderChat() {
+    main.textContent = ""; addGreeting();
+  }
+  function autosize() { input.style.height = "auto"; input.style.height = Math.min(input.scrollHeight, 120) + "px"; }
+
+  input.addEventListener("input", function () { sendBtn.disabled = state.busy || !input.value.trim(); autosize(); });
+  input.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(input.value); }
+  });
+  sendBtn.onclick = function () { send(input.value); };
+  $("clear").onclick = function () { renderChat(); };
+
+  /* ===== 체크리스트 화면 ===== */
+  function itemsFor(p) {
+    var own = (CHECKLISTS[p] || []).map(function (s) {
+      var a = s.split("|"); var d = BY_ID[a[0]]; return { key: s, text: a[1] || CHECK_TEXT[a[0]] || d.summary, doc: d, group: p };
+    });
+    var com = COMMON.map(function (id) { return { key: id, text: CHECK_TEXT[id], doc: BY_ID[id], group: "전 공정 공통" }; });
+    return own.concat(com);
+  }
+  function renderChecklist() {
+    main.textContent = "";
+    var p = state.process;
+    var items = itemsFor(p);
+    var st = state.checks[p] || (state.checks[p] = {});
+    main.appendChild(el("div", "ck-head", p === "전체" ? "전 공정 공통 작업 전 확인" : p + " 작업 전 확인"));
+    main.appendChild(el("div", "ck-sub", p === "전체" ? "공정을 고르면 그 공정의 확인 항목이 함께 나와요." : "공정 항목 " + (items.length - COMMON.length) + "개 + 공통 항목 " + COMMON.length + "개를 모두 확인하세요."));
+    var meter = el("div", "meter"); var bar = el("i"); meter.appendChild(bar); main.appendChild(meter);
+    var prog = el("div", "ck-sub", ""); main.appendChild(prog);
+    var ready = el("div", "ready hidden", "✅ 작업 준비 완료"); ready.setAttribute("role", "status");
+    function update() {
+      var n = items.filter(function (it) { return st[it.key]; }).length;
+      prog.textContent = n + " / " + items.length + " 확인";
+      bar.style.width = (items.length ? (n / items.length * 100) : 0) + "%";
+      ready.classList.toggle("hidden", n !== items.length);
+    }
+    var last = null;
+    items.forEach(function (it, i) {
+      if (it.group !== last) { main.appendChild(el("div", "group-t", it.group === "전 공정 공통" ? "전 공정 공통" : it.group)); last = it.group; }
+      var row = el("label", "ck" + (st[it.key] ? " done" : ""));
+      var cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!st[it.key];
+      cb.onchange = function () { st[it.key] = cb.checked; row.classList.toggle("done", cb.checked); update(); };
+      var box = el("div", "");
+      box.appendChild(el("div", "t", (i + 1) + ". " + it.text));
+      box.appendChild(el("div", "s", "근거: " + it.doc.doc + " " + it.doc.clause + " — “" + it.doc.excerpt + "”"));
+      row.appendChild(cb); row.appendChild(box); main.appendChild(row);
+    });
+    main.appendChild(ready); update(); main.scrollTop = 0;
+  }
+
+  /* ===== 탭 / 공정 ===== */
+  function setTab(t) {
+    state.tab = t;
+    $("tab-chat").setAttribute("aria-selected", t === "chat");
+    $("tab-check").setAttribute("aria-selected", t === "check");
+    $("composer").classList.toggle("hidden", t !== "chat");
+    if (t === "chat") { renderChat(); } else { renderChecklist(); }
+  }
+  $("tab-chat").onclick = function () { setTab("chat"); };
+  $("tab-check").onclick = function () { setTab("check"); };
+  function buildProcs() {
+    var w = $("procs"); w.textContent = "";
+    PROCESSES.forEach(function (p) {
+      var b = el("button", "", p); b.type = "button"; b.setAttribute("aria-pressed", String(p === state.process));
+      b.onclick = function () {
+        state.process = p; buildProcs(); $("procLabel").textContent = "공정: " + p + " · Enter 전송 / Shift+Enter 줄바꿈";
+        if (state.tab === "check") renderChecklist();
+      };
+      w.appendChild(b);
+    });
+  }
+  buildProcs(); renderChat();
+})();
+</script>
+</body>
+</html>
